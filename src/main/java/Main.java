@@ -8,9 +8,9 @@ public class Main {
                 Thread.currentThread().getId(), Thread.currentThread().getName()));
 
         var exchanger = new Exchanger<ArrayList<Integer>>();
+        final int BUFFER_SIZE = 10;
 
         var producer = new Thread() {
-            private final int BUFFER_SIZE = 10;
             Random rnd = new Random();
             ArrayList<Integer> buffer = new ArrayList<>(BUFFER_SIZE);
 
@@ -44,12 +44,38 @@ public class Main {
             }
         };
 
+        var consumer = new Thread() {
+            ArrayList<Integer> buffer = new ArrayList<>(BUFFER_SIZE);
+
+            @Override
+            public void run() {
+                System.out.println(String.format("Starting consumer thread ID = %s, Name = %s",
+                        currentThread().getId(), currentThread().getName()));
+
+                while (true) {
+                    try {
+                        System.out.println("Consumer is waiting for the data...");
+                        buffer = exchanger.exchange(buffer);
+
+                        System.out.println("Consumer received: " + buffer);
+                        buffer.clear();
+                    } catch (InterruptedException e) {
+                        System.out.println("Consumer interrupted!");
+                        break;
+                    }
+                }
+            }
+        };
+
         producer.start();
+        consumer.start();
 
         try {
-            Thread.currentThread().sleep(10*1000);
+            Thread.currentThread().sleep(30 * 1000);
             System.out.println("Interrupting Producer...");
             producer.interrupt();
+            System.out.println("Interrupting Consumer...");
+            consumer.interrupt();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
